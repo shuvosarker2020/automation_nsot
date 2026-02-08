@@ -202,15 +202,18 @@ Description: 24-Port Gigabit Unmanaged Switch
 **Interface Templates যোগ করুন** (গুরুত্বপূর্ণ):
 
 MikroTik CCR2004-এর জন্য:
+
 - ether1 (1000BASE-T)
 - sfp-sfpplus1 থেকে sfp-sfpplus12 (10GBASE-X-SFP+)
 - sfp28-1, sfp28-2 (25GBASE-X-SFP28)
 
 TP-Link TL-SG3428-এর জন্য:
+
 - ether1 থেকে ether24 (1000BASE-T)
 - sfp1 থেকে sfp4 (1000BASE-X-SFP)
 
 TP-Link TL-SG1024D-এর জন্য:
+
 - ether1 থেকে ether24 (1000BASE-T)
 
 ### দিন ৫: Device Roles এবং Tags
