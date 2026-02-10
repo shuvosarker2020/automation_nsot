@@ -6,286 +6,150 @@ API কী জিনিস? সহজ ভাষায় বলতে গেল�
 
 এই চ্যাপ্টারে আমরা দেখব কীভাবে Python দিয়ে Nautobot-এর সাথে কথা বলতে হয়, কীভাবে ডেটা পড়তে হয়, কীভাবে নতুন জিনিস যোগ করতে হয়। শুরু করি PyNautobot দিয়ে।
 
-### PyNautobot - Python থেকে Nautobot
+# চ্যাপ্টার ১৩: PyNautobot দিয়ে অটোমেশন (সম্পূর্ণ)
 
-PyNautobot হলো একটা Python লাইব্রেরি যেটা Nautobot API-এর সাথে কাজ করা সহজ করে দেয়। এটা Nautobot টিম নিজেই তৈরি করেছে, তাই সবচেয়ে ভালো support পাবেন।
+SkyNets Bangladesh এখন ৫০ হাজার কাস্টমারে পৌঁছেছে। Nautobot এর ওয়েব UI দিয়ে সব কাজ করছে - ডিভাইস যোগ করা, আইপি এসাইন করা, রিপোর্ট দেখা। কিন্তু একদিন জাহাঙ্গীর সাহেব একটা সমস্যার মুখোমুখি হলেন।
+
+গত সপ্তাহে নতুন একটা বিল্ডিংয়ে ২০টা এক্সেস সুইচ ইনস্টল করা হয়েছে। প্রতিটা সুইচের জন্য:
+- Nautobot এ ডিভাইস এন্ট্রি করতে হবে
+- ম্যানেজমেন্ট আইপি এসাইন করতে হবে
+
+আসিফ UI থেকে একটা একটা করে করছিল। একটা ডিভাইস এন্ট্রি করতে ৫-৭ মিনিট লাগছে। ২০টায় প্রায় ২ ঘন্টা!
+
+জাহাঙ্গীর সাহেব বললেন, "এভাবে চলবে না। আমাদের অটোমেশন দরকার। Python স্ক্রিপ্ট লিখে Nautobot API দিয়ে কাজ করা যায়।"
+
+## PyNautobot - Python থেকে Nautobot
+
+PyNautobot হলো একটা Python লাইব্রেরি যেটা Nautobot API এর সাথে কাজ করা সহজ করে দেয়।
 
 ### Python Environment সেটআপ
 
-প্রথমে আপনার কম্পিউটারে Python ইনস্টল থাকতে হবে। বাংলাদেশের বেশিরভাগ ISP-তে Windows কম্পিউটার ইউজ হয়, তাই Windows-এর জন্য দেখাচ্ছি।
+**Windows এ:**
+১. python.org থেকে Python ডাউনলোড করুন (৩.১১+)
+২. ইনস্টল করার সময় "Add Python to PATH" চেক করুন
+৩. Command Prompt এ চেক করুন: `python --version`
 
-**Windows-এ Python ইনস্টল:**
-
-১. python.org থেকে Python ডাউনলোড করুন (৩.৯ বা তার উপরে)
-২. ইনস্টল করার সময় "Add Python to PATH" চেকবক্স টিক দিন
-৩. Command Prompt ওপেন করে চেক করুন:
-
-```bash
-python --version
-```
-
-দেখাবে: `Python 3.11.5` বা এরকম কিছু।
-
-**Linux/Mac-এ:**
-
-সাধারণত Python আগে থেকেই ইনস্টল থাকে। চেক করুন:
-
-```bash
-python3 --version
-```
-
-### PyNautobot ইনস্টল করা
-
-Command Prompt বা Terminal-এ:
+**PyNautobot ইনস্টল:**
 
 ```bash
 pip install pynautobot
 ```
 
-অপেক্ষা করুন। কয়েক সেকেন্ডে ইনস্টল হয়ে যাবে। দেখাবে:
-
-```
-Successfully installed pynautobot-2.1.1
-```
-
 ### API Token তৈরি করা
 
-PyNautobot দিয়ে Nautobot-এ কানেক্ট করতে হলে একটা API Token লাগবে। এটা একধরনের পাসওয়ার্ড।
-
-Nautobot-এ লগইন করুন। উপরের ডান কোণায় আপনার ইউজারনেমে ক্লিক → **Profile** → **API Tokens** ট্যাব।
-
-**+ Add Token** বাটনে ক্লিক করুন।
+Nautobot → Profile → API Tokens → + Add Token
 
 ```
 Description: Python Scripts
-Write Enabled: ✓ (চেক করুন - যাতে শুধু read না, write-ও করতে পারেন)
+Write Enabled: ✓
 ```
 
-**Create** করুন। একটা টোকেন জেনারেট হবে:
+টোকেন কপি করুন: `0123456789abcdef0123456789abcdef01234567`
 
-```
-0123456789abcdef0123456789abcdef01234567
-```
+⚠️ এটা পাসওয়ার্ডের মতো - কাউকে দেবেন না!
 
-এই টোকেন কপি করে নিরাপদ জায়গায় সেভ করুন। **এটা আর দেখানো হবে না**। যদি হারিয়ে যায়, নতুন টোকেন তৈরি করতে হবে।
+## প্রথম Python স্ক্রিপ্ট
 
-⚠️ **গুরুত্বপূর্ণ:** এই টোকেন কাউকে দেবেন না। এটা দিয়ে আপনার Nautobot-এ সব কাজ করা যায়।
-
-## প্রথম Python স্ক্রিপ্ট - হ্যালো Nautobot
-
-এখন একটা সিম্পল স্ক্রিপ্ট লিখি যেটা Nautobot-এর সাথে কানেক্ট করবে।
-
-একটা নতুন ফাইল তৈরি করুন: `hello_nautobot.py`
+`hello_nautobot.py` ফাইল তৈরি করুন:
 
 ```python
 from pynautobot import api
 
 # Nautobot connection
 nb = api(
-    url="https://nautobot.skynet.bd",  # আপনার Nautobot URL
-    token="0123456789abcdef0123456789abcdef01234567"  # আপনার টোকেন
+    url="https://nautobot.skynets.bd",
+    token="0123456789abcdef0123456789abcdef01234567"
 )
 
-# Test করুন connection কাজ করছে কিনা
+# Test connection
 print(f"Connected to Nautobot: {nb.version}")
 ```
 
-ফাইল সেভ করুন। এখন চালান:
+চালান:
 
 ```bash
 python hello_nautobot.py
 ```
 
-আউটপুট:
+আউটপুট: `Connected to Nautobot: 3.0.0`
 
-```
-Connected to Nautobot: 2.0.5
-```
-
-অভিনন্দন! আপনার প্রথম PyNautobot স্ক্রিপ্ট কাজ করছে। 
-
-যদি error আসে "SSL verification failed", তাহলে:
-
-```python
-nb = api(
-    url="https://nautobot.skynet.bd",
-    token="your-token",
-    verify=False  # Self-signed certificate-এর জন্য
-)
-```
-
-তবে production-এ `verify=False` ব্যবহার করবেন না। Proper SSL certificate ইউজ করুন।
-
-## ডেটা রিড করা - Devices লিস্ট
-
-এখন আসল কাজ শুরু করি। সব ডিভাইসের লিস্ট বের করব।
+## ডেটা রিড করা - সব ডিভাইস দেখা
 
 `list_devices.py`:
 
 ```python
 from pynautobot import api
 
-nb = api(
-    url="https://nautobot.skynet.bd",
-    token="your-token-here"
-)
+nb = api(url="https://nautobot.skynets.bd", token="your-token")
 
 # সব ডিভাইস নিয়ে আসুন
 devices = nb.dcim.devices.all()
 
 print(f"Total devices: {len(devices)}\n")
 
-# প্রতিটা ডিভাইসের নাম প্রিন্ট করুন
-for device in devices:
-    print(f"- {device.name}")
-```
-
-চালান:
-
-```bash
-python list_devices.py
+# প্রতিটা ডিভাইসের নাম এবং লোকেশন
+for device in devices[:10]:  # প্রথম ১০টা
+    print(f"- {device.name} at {device.location}")
 ```
 
 আউটপুট:
 
 ```
-Total devices: 127
-
-- R-DN-MIR-CORE-01
-- R-DN-KAL-CORE-01
-- SW-DN-MIR-DIST-01
-- SW-DN-MIR-DIST-02
-- SW-DN-MIR-ACC-01
-...
-```
-
-### একটু বিস্তারিত তথ্য
-
-শুধু নাম না, আরো তথ্য দেখি:
-
-```python
-from pynautobot import api
-
-nb = api(url="https://nautobot.skynet.bd", token="your-token")
-
-devices = nb.dcim.devices.all()
-
-for device in devices[:10]:  # প্রথম ১০টা দেখাই
-    print(f"\nDevice: {device.name}")
-    print(f"  Type: {device.device_type}")
-    print(f"  Location: {device.location}")
-    print(f"  Status: {device.status}")
-    print(f"  Serial: {device.serial}")
-```
-
-আউটপুট:
-
-```
-Device: R-DN-MIR-CORE-01
-  Type: MikroTik CCR2004-1G-12S+2XS
-  Location: Mirpur POP
-  Status: Active
-  Serial: ABC1234MIR001
-
-Device: SW-DN-MIR-DIST-01
-  Type: TP-Link TL-SG3428
-  Location: Mirpur POP
-  Status: Active
-  Serial: TPL1234DIST01
-...
-```
-
-## ফিল্টার করে খুঁজে বের করা
-
-সব ডিভাইস না, নির্দিষ্ট কিছু চাই। যেমন শুধু মিরপুর পপের ডিভাইস।
-
-```python
-from pynautobot import api
-
-nb = api(url="https://nautobot.skynet.bd", token="your-token")
-
-# শুধু Mirpur POP-এর ডিভাইস
-mirpur_devices = nb.dcim.devices.filter(location="Mirpur POP")
-
-print(f"Devices in Mirpur POP: {len(mirpur_devices)}\n")
-
-for device in mirpur_devices:
-    print(f"- {device.name}")
-```
-
-অথবা শুধু Core Routers:
-
-```python
-# শুধু Core Router role-এর ডিভাইস
-core_routers = nb.dcim.devices.filter(role="Core Router")
-
-print(f"Total Core Routers: {len(core_routers)}\n")
-
-for router in core_routers:
-    print(f"- {router.name} at {router.location}")
-```
-
-আউটপুট:
-
-```
-Total Core Routers: 8
+Total devices: 152
 
 - R-DN-MIR-CORE-01 at Mirpur POP
-- R-DN-KAL-CORE-01 at Kalyanpur POP
 - R-DN-UTT-CORE-01 at Uttara POP
+- SW-DN-GUL-DIST-01 at Gulshan POP
 ...
 ```
 
-### একাধিক ফিল্টার একসাথে
+## ফিল্টার করা - নির্দিষ্ট ডিভাইস খুঁজা
 
 ```python
-# Mirpur POP-এর Active Core Routers
-devices = nb.dcim.devices.filter(
-    location="Mirpur POP",
-    role="Core Router",
-    status="active"
-)
+# শুধু Mirpur POP এর ডিভাইস
+mirpur_devices = nb.dcim.devices.filter(location="Mirpur POP")
+print(f"Mirpur devices: {len(mirpur_devices)}")
 
-for device in devices:
-    print(device.name)
+# শুধু Core Routers
+core_routers = nb.dcim.devices.filter(role="Core Router")
+print(f"Core Routers: {len(core_routers)}")
+
+# একাধিক ফিল্টার
+active_switches = nb.dcim.devices.filter(
+    role="Access Switch",
+    status="active",
+    location="Gulshan POP"
+)
 ```
 
-## IP Address রিপোর্ট
+## আইপি ইউটিলাইজেশন রিপোর্ট
 
-এখন একটা কাজের স্ক্রিপ্ট লিখি - আইপি ইউটিলাইজেশন রিপোর্ট।
+জাহাঙ্গীর সাহেব প্রতি সপ্তাহে জানতে চান কোন প্রিফিক্স প্রায় ফুল।
 
 `ip_utilization.py`:
 
 ```python
 from pynautobot import api
 
-nb = api(url="https://nautobot.skynet.bd", token="your-token")
+nb = api(url="https://nautobot.skynets.bd", token="your-token")
 
-# সব প্রিফিক্স নিয়ে আসুন
 prefixes = nb.ipam.prefixes.all()
 
 print("IP Utilization Report")
 print("=" * 60)
 
 for prefix in prefixes:
-    # শুধু /24 prefixes দেখাই (আপনার প্রয়োজন অনুযায়ী ফিল্টার করুন)
-    if "/24" in str(prefix.prefix):
-        utilization = prefix.utilization if hasattr(prefix, 'utilization') else 0
+    if "/24" in str(prefix.prefix):  # শুধু /24 দেখাই
+        util = prefix.utilization if hasattr(prefix, 'utilization') else 0
         
         print(f"\nPrefix: {prefix.prefix}")
         print(f"  Location: {prefix.location}")
-        print(f"  Description: {prefix.description}")
-        print(f"  Utilization: {utilization}%")
+        print(f"  Utilization: {util}%")
         
-        # সতর্কতা দিন যদি ৮০% এর বেশি ইউজ হয়ে যায়
-        if utilization > 80:
+        if util > 80:
             print(f"  ⚠️  WARNING: High utilization!")
-```
-
-চালান:
-
-```bash
-python ip_utilization.py
+        elif util > 60:
+            print(f"  ⚠️  NOTICE: Approaching capacity.")
 ```
 
 আউটপুট:
@@ -296,167 +160,172 @@ IP Utilization Report
 
 Prefix: 103.125.40.0/24
   Location: Mirpur POP
-  Description: Residential customers - Mirpur
-  Utilization: 87%
+  Utilization: 92%
   ⚠️  WARNING: High utilization!
 
-Prefix: 103.125.44.0/24
-  Location: Uttara POP
-  Description: Residential customers - Uttara
+Prefix: 103.125.48.0/24
+  Location: Gulshan POP
   Utilization: 45%
-...
 ```
 
-এই রিপোর্ট দেখে বুঝতে পারবেন কোন প্রিফিক্সে নতুন আইপি দরকার।
+## নতুন ডিভাইস যোগ করা
 
-## নতুন ডেটা যোগ করা
-
-এতক্ষণ শুধু পড়লাম। এখন দেখি কীভাবে নতুন কিছু যোগ করতে হয়।
-
-### নতুন ডিভাইস তৈরি
+একটা ডিভাইস:
 
 ```python
 from pynautobot import api
 
-nb = api(url="https://nautobot.skynet.bd", token="your-token")
+nb = api(url="https://nautobot.skynets.bd", token="your-token")
 
-# নতুন একটা এক্সেস সুইচ এড করব
 new_device = nb.dcim.devices.create(
-    name="SW-DN-MIR-ACC-11",
-    device_type="TP-Link TL-SG1024D",  # এই device type আগে থেকে থাকতে হবে
+    name="SW-DN-GUL-ACC-26",
+    device_type="TP-Link TL-SG1024D",
     role="Access Switch",
-    location="Mirpur POP",
+    location="Gulshan POP",
     status="active",
-    serial="TPLACC011NEW",
+    serial="TPLACC026NEW",
     comments="Added via Python script"
 )
 
-print(f"Device created: {new_device.name}")
-print(f"Device ID: {new_device.id}")
+print(f"✓ Created: {new_device.name}")
 ```
 
-চালালে:
+## বাল্ক ডিভাইস তৈরি - আসিফের সমস্যা solve
 
-```
-Device created: SW-DN-MIR-ACC-11
-Device ID: 1234
-```
+CSV ফাইল থেকে:
 
-এখন Nautobot UI-তে গিয়ে দেখুন। নতুন ডিভাইস তৈরি হয়ে গেছে।
+`new_devices.csv`:
 
-### IP Address যোগ করা
-
-```python
-from pynautobot import api
-
-nb = api(url="https://nautobot.skynet.bd", token="your-token")
-
-# নতুন আইপি
-new_ip = nb.ipam.ip_addresses.create(
-    address="10.10.10.99/24",
-    status="active",
-    description="Test IP added via script"
-)
-
-print(f"IP created: {new_ip.address}")
-```
-
-### বাল্ক ক্রিয়েশন - একসাথে অনেকগুলো
-
-ধরুন একটা CSV ফাইল আছে নতুন কাস্টমারদের আইপির জন্য:
-
-`new_customers.csv`:
 ```csv
-ip,customer_name
-10.10.100.10,Customer A
-10.10.100.11,Customer B
-10.10.100.12,Customer C
+name,serial,building
+SW-DN-GUL-ACC-27,TPLACC027,Building F
+SW-DN-GUL-ACC-28,TPLACC028,Building F
+SW-DN-GUL-ACC-29,TPLACC029,Building G
 ```
 
-এগুলো একসাথে এড করি:
+`import_devices.py`:
 
 ```python
 import csv
 from pynautobot import api
 
-nb = api(url="https://nautobot.skynet.bd", token="your-token")
+nb = api(url="https://nautobot.skynets.bd", token="your-token")
 
-# CSV ফাইল পড়ুন
-with open('new_customers.csv', 'r') as f:
+with open('new_devices.csv', 'r') as f:
     reader = csv.DictReader(f)
     
     for row in reader:
-        ip_address = f"{row['ip']}/32"
-        description = f"Customer: {row['customer_name']}"
-        
-        # IP তৈরি করুন
         try:
-            new_ip = nb.ipam.ip_addresses.create(
-                address=ip_address,
+            device = nb.dcim.devices.create(
+                name=row['name'],
+                device_type="TP-Link TL-SG1024D",
+                role="Access Switch",
+                location="Gulshan POP",
                 status="active",
-                description=description
+                serial=row['serial'],
+                comments=f"Auto-added - {row['building']}"
             )
-            print(f"✓ Created: {ip_address} - {row['customer_name']}")
+            print(f"✓ Created: {device.name}")
         except Exception as e:
-            print(f"✗ Failed: {ip_address} - {e}")
+            print(f"✗ Failed: {row['name']} - {e}")
 ```
 
-চালালে:
+২০টা ডিভাইস ২ মিনিটে তৈরি! ২ ঘন্টার কাজ ২ মিনিটে শেষ।
 
-```
-✓ Created: 10.10.100.10/32 - Customer A
-✓ Created: 10.10.100.11/32 - Customer B
-✓ Created: 10.10.100.12/32 - Customer C
-```
+## IP Address Assignment
 
-এভাবে একবারে শত শত কাস্টমার যোগ করতে পারবেন।
+নতুন ডিভাইসে আইপি এসাইন করা:
+
+```python
+from pynautobot import api
+
+nb = api(url="https://nautobot.skynets.bd", token="your-token")
+
+# ডিভাইস খুঁজুন
+device = nb.dcim.devices.get(name="SW-DN-GUL-ACC-26")
+
+# Interface খুঁজুন (বা তৈরি করুন)
+# প্রথমে দেখুন vlan10 interface আছে কিনা
+interfaces = nb.dcim.interfaces.filter(device_id=device.id, name="vlan10")
+
+if not interfaces:
+    # নেই তো তৈরি করুন
+    interface = nb.dcim.interfaces.create(
+        device=device.id,
+        name="vlan10",
+        type="virtual",
+        enabled=True,
+        description="Management interface"
+    )
+    print(f"✓ Created interface: vlan10")
+else:
+    interface = interfaces[0]
+
+# এখন IP assign করুন
+new_ip = nb.ipam.ip_addresses.create(
+    address="10.10.12.26/24",  # Gulshan POP management network
+    status="active",
+    assigned_object_type="dcim.interface",
+    assigned_object_id=interface.id,
+    dns_name="sw-gul-acc-26.skynets.bd",
+    description="Management IP"
+)
+
+print(f"✓ IP assigned: {new_ip.address}")
+```
 
 ## ডেটা আপডেট করা
 
-বিদ্যমান ডেটা চেঞ্জ করতে হলে:
+বিদ্যমান ডিভাইস চেঞ্জ করা:
 
 ```python
 from pynautobot import api
 
-nb = api(url="https://nautobot.skynet.bd", token="your-token")
+nb = api(url="https://nautobot.skynets.bd", token="your-token")
 
-# একটা ডিভাইস খুঁজে বের করুন
-device = nb.dcim.devices.get(name="SW-DN-MIR-ACC-11")
+# ডিভাইস খুঁজুন
+device = nb.dcim.devices.get(name="SW-DN-GUL-ACC-26")
 
 # Status আপডেট করুন
 device.status = "offline"
-device.comments = "Device offline for maintenance - 2025-02-08"
+device.comments = "Under maintenance - scheduled completion: 2027-02-15"
 device.save()
 
-print(f"Updated: {device.name} status to {device.status}")
+print(f"✓ Updated: {device.name}")
 ```
 
-### বাল্ক আপডেট
-
-সব মিরপুর পপের ডিভাইসে একটা ট্যাগ যোগ করব:
+### বাল্ক আপডেট - সব গুলশান পপ ডিভাইসে ট্যাগ যোগ
 
 ```python
 from pynautobot import api
 
-nb = api(url="https://nautobot.skynet.bd", token="your-token")
+nb = api(url="https://nautobot.skynets.bd", token="your-token")
 
-# মিরপুর পপের সব ডিভাইস
-mirpur_devices = nb.dcim.devices.filter(location="Mirpur POP")
+# প্রথমে ট্যাগ খুঁজুন (বা তৈরি করুন)
+try:
+    production_tag = nb.extras.tags.get(name="production")
+except:
+    production_tag = nb.extras.tags.create(
+        name="production",
+        color="4caf50",
+        description="Production equipment"
+    )
 
-# "production" ট্যাগ আগে থেকে থাকতে হবে
-production_tag = nb.extras.tags.get(name="production")
+# গুলশান পপের সব ডিভাইস
+gulshan_devices = nb.dcim.devices.filter(location="Gulshan POP")
 
-for device in mirpur_devices:
-    # যদি ট্যাগ না থাকে, যোগ করুন
-    if production_tag not in device.tags:
+for device in gulshan_devices:
+    # Check if tag already exists
+    tag_names = [tag.name for tag in device.tags]
+    if "production" not in tag_names:
         device.tags.append(production_tag)
         device.save()
         print(f"✓ Tagged: {device.name}")
 ```
 
-## একটা কমপ্লিট উদাহরণ - ডেইলি রিপোর্ট
+## ডেইলি রিপোর্ট স্ক্রিপ্ট
 
-এখন একটা প্র্যাক্টিক্যাল স্ক্রিপ্ট লিখি যেটা প্রতিদিন সকালে চালাবেন।
+আসিফ প্রতিদিন সকালে একটা রিপোর্ট চায়। এখন অটোমেট করা যাক।
 
 `daily_report.py`:
 
@@ -464,14 +333,14 @@ for device in mirpur_devices:
 from pynautobot import api
 from datetime import datetime
 
-nb = api(url="https://nautobot.skynet.bd", token="your-token")
+nb = api(url="https://nautobot.skynets.bd", token="your-token")
 
 print("=" * 70)
-print(f"SkyNet Bangladesh - Daily Network Report")
+print(f"SkyNets Bangladesh - Daily Network Report")
 print(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 print("=" * 70)
 
-# 1. Total Statistics
+# 1. Overall Statistics
 print("\n📊 OVERALL STATISTICS")
 print("-" * 70)
 
@@ -513,15 +382,25 @@ if high_util:
 else:
     print("✓ All prefixes have healthy utilization")
 
-# 4. Devices without Serial Numbers
-print("\n🔍 DATA QUALITY ISSUES")
+# 4. Devices Under Maintenance
+print("\n🔧 MAINTENANCE STATUS")
+print("-" * 70)
+
+maintenance_devices = nb.dcim.devices.filter(tags="maintenance")
+if maintenance_devices:
+    print(f"⚠️  {len(maintenance_devices)} devices under maintenance:")
+    for device in maintenance_devices:
+        print(f"   - {device.name}")
+else:
+    print("✓ No devices under maintenance")
+
+# 5. Data Quality Issues
+print("\n🔍 DATA QUALITY CHECK")
 print("-" * 70)
 
 no_serial = nb.dcim.devices.filter(status="active", serial="")
 if no_serial:
-    print(f"⚠️  {len(no_serial)} active devices missing serial numbers:")
-    for device in no_serial[:5]:  # Show first 5
-        print(f"   - {device.name}")
+    print(f"⚠️  {len(no_serial)} active devices missing serial numbers")
 else:
     print("✓ All active devices have serial numbers")
 
@@ -530,86 +409,75 @@ print("Report completed successfully")
 print("=" * 70)
 ```
 
-চালান:
-
-```bash
-python daily_report.py
-```
-
 আউটপুট:
 
 ```
 ======================================================================
-SkyNet Bangladesh - Daily Network Report
-Generated: 2025-02-08 09:00:00
+SkyNets Bangladesh - Daily Network Report
+Generated: 2027-02-09 09:00:00
 ======================================================================
 
 📊 OVERALL STATISTICS
 ----------------------------------------------------------------------
-Total Devices: 127
-  ├─ Active: 124
-  └─ Offline: 3
+Total Devices: 152
+  ├─ Active: 148
+  └─ Offline: 4
 
 🏢 LOCATION BREAKDOWN
 ----------------------------------------------------------------------
-Mirpur POP: 23 devices
-Kalyanpur POP: 15 devices
-Uttara POP: 18 devices
-Banani POP: 12 devices
-Gulshan POP: 16 devices
-Mohammadpur POP: 14 devices
-Dhanmondi POP: 17 devices
-Baridhara POP: 12 devices
+Mirpur POP: 28 devices
+Uttara POP: 22 devices
+Gulshan POP: 24 devices
+Banani POP: 18 devices
+...
 
 ⚠️  IP UTILIZATION ALERTS
 ----------------------------------------------------------------------
-⚠️  103.125.40.0/24 at Mirpur POP: 87%
-⚠️  103.125.48.0/24 at Gulshan POP: 82%
+⚠️  103.125.40.0/24 at Mirpur POP: 92%
+⚠️  103.125.48.0/24 at Gulshan POP: 84%
 
-🔍 DATA QUALITY ISSUES
+🔧 MAINTENANCE STATUS
 ----------------------------------------------------------------------
-⚠️  3 active devices missing serial numbers:
-   - SW-DN-MIR-ACC-08
-   - SW-DN-BAN-ACC-03
-   - SW-DN-GUL-DIST-02
+✓ No devices under maintenance
+
+🔍 DATA QUALITY CHECK
+----------------------------------------------------------------------
+⚠️  3 active devices missing serial numbers
 
 ======================================================================
 Report completed successfully
 ======================================================================
 ```
 
-এই স্ক্রিপ্ট প্রতিদিন সকালে cron/Task Scheduler দিয়ে চালান। আউটপুট ইমেইলে পাঠান।
+### রিপোর্ট অটোমেট করা
 
-### Windows Task Scheduler দিয়ে অটোমেট
-
-Windows-এ প্রতিদিন সকাল ৮টায় চালানোর জন্য:
+**Windows Task Scheduler:**
 
 ১. Task Scheduler ওপেন করুন
-২. "Create Basic Task" ক্লিক করুন
-৩. Name: "Nautobot Daily Report"
-৪. Trigger: Daily, 8:00 AM
-৫. Action: Start a program
+২. Create Basic Task → Name: "Nautobot Daily Report"
+৩. Trigger: Daily, 8:00 AM
+৪. Action: Start a program
    - Program: `python`
-   - Arguments: `C:\scripts\daily_report.py`
-৬. Finish
+   - Arguments: `C:\nautobot-scripts\daily_report.py`
+৫. Finish
 
-### Linux Cron দিয়ে
+**Linux Cron:**
 
 ```bash
 # crontab -e
-
-# প্রতিদিন সকাল ৮টায়
-0 8 * * * /usr/bin/python3 /home/skynet/scripts/daily_report.py > /home/skynet/reports/daily_$(date +\%Y\%m\%d).txt
+0 8 * * * /usr/bin/python3 /home/skynets/scripts/daily_report.py > /home/skynets/reports/daily_$(date +\%Y\%m\%d).txt
 ```
+
+এখন প্রতিদিন সকাল ৮টায় অটোমেটিক রিপোর্ট জেনারেট হবে।
 
 ## Error Handling - ভুল সামলানো
 
-স্ক্রিপ্ট লেখার সময় Error Handling করা জরুরি। না হলে একটা ছোট সমস্যায় পুরো স্ক্রিপ্ট থেমে যাবে।
+স্ক্রিপ্ট লেখার সময় Error Handling করা জরুরি।
 
 ```python
 from pynautobot import api
 
-nb = api(url="https://nautobot.skynet.bd", token="your-token")
+nb = api(url="https://nautobot.skynets.bd", token="your-token")
 
 # নিরাপদ উপায়ে ডিভাইস খুঁজুন
 try:
@@ -619,130 +487,25 @@ except ValueError:
     print("Device not found")
 except Exception as e:
     print(f"Error: {e}")
-
-# বাল্ক অপারেশনে Error Handling
-devices_to_create = [
-    {"name": "SW-DN-MIR-ACC-12", "location": "Mirpur POP"},
-    {"name": "SW-DN-UTT-ACC-15", "location": "Uttara POP"},
-]
-
-for dev_data in devices_to_create:
-    try:
-        new_device = nb.dcim.devices.create(
-            name=dev_data["name"],
-            device_type="TP-Link TL-SG1024D",
-            role="Access Switch",
-            location=dev_data["location"],
-            status="active"
-        )
-        print(f"✓ Created: {new_device.name}")
-    except Exception as e:
-        print(f"✗ Failed to create {dev_data['name']}: {e}")
-        continue  # পরেরটায় চলে যান, পুরো স্ক্রিপ্ট থামবে না
 ```
-
-## পরবর্তী ধাপ - Ansible সাথে ইন্টিগ্রেশন
-
-PyNautobot দিয়ে ডেটা রিড/রাইট করতে পারলেন। পরের লেভেল হলো Ansible-এর সাথে ইন্টিগ্রেট করা।
-
-Ansible হলো একটা অটোমেশন টুল যা দিয়ে নেটওয়ার্ক ডিভাইস কনফিগার করা যায়। Nautobot-এর সাথে Ansible ইউজ করলে:
-
-- Nautobot থেকে ডিভাইস লিস্ট নিয়ে আসবেন
-- সেই ডিভাইসগুলোতে কনফিগ পুশ করবেন
-- আবার কনফিগ ব্যাকআপ নিয়ে Nautobot-এ স্টোর করবেন
-
-### একটা সিম্পল Ansible Inventory
-
-`inventory.py`:
-
-```python
-#!/usr/bin/env python3
-import json
-from pynautobot import api
-
-nb = api(url="https://nautobot.skynet.bd", token="your-token")
-
-inventory = {
-    "all": {
-        "hosts": [],
-        "children": {}
-    },
-    "_meta": {
-        "hostvars": {}
-    }
-}
-
-# সব Active রাউটার
-routers = nb.dcim.devices.filter(role="Core Router", status="active")
-
-for router in routers:
-    hostname = router.name
-    
-    # Management IP খুঁজুন
-    mgmt_ip = None
-    interfaces = nb.dcim.interfaces.filter(device=router.name)
-    for interface in interfaces:
-        ips = nb.ipam.ip_addresses.filter(assigned_object_id=interface.id)
-        if ips:
-            mgmt_ip = str(ips[0].address).split('/')[0]
-            break
-    
-    if mgmt_ip:
-        inventory["all"]["hosts"].append(hostname)
-        inventory["_meta"]["hostvars"][hostname] = {
-            "ansible_host": mgmt_ip,
-            "location": str(router.location),
-            "device_type": str(router.device_type)
-        }
-
-print(json.dumps(inventory, indent=2))
-```
-
-এই স্ক্রিপ্ট Ansible dynamic inventory হিসেবে কাজ করবে। Ansible কমান্ডে:
-
-```bash
-ansible -i inventory.py all -m ping
-```
-
-এতে Nautobot থেকে সব ডিভাইস নিয়ে এসে ping করবে।
 
 ## Best Practices
 
-কিছু টিপস যা মাথায় রাখবেন:
+**১. Token সিকিউরিটি - হার্ডকোড করবেন না:**
 
-**১. Token সিকিউরিটি:**
-
-হার্ডকোড করবেন না:
 ```python
 # ❌ খারাপ
 token = "abc123..."
-```
 
-Environment variable ইউজ করুন:
-```python
-# ✅ ভালো
+# ✅ ভালো - Environment variable
 import os
 token = os.environ.get('NAUTOBOT_TOKEN')
-```
 
-অথবা config ফাইল:
-```python
-# config.ini
-[nautobot]
-url = https://nautobot.skynet.bd
-token = your-token-here
-```
-
-```python
-# স্ক্রিপ্টে
+# অথবা config ফাইল
 import configparser
 config = configparser.ConfigParser()
 config.read('config.ini')
-
-nb = api(
-    url=config['nautobot']['url'],
-    token=config['nautobot']['token']
-)
+token = config['nautobot']['token']
 ```
 
 **২. Logging যোগ করুন:**
@@ -753,33 +516,60 @@ import logging
 logging.basicConfig(
     filename='nautobot_script.log',
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(message)s'
 )
 
 logging.info("Script started")
-
-try:
-    devices = nb.dcim.devices.all()
-    logging.info(f"Retrieved {len(devices)} devices")
-except Exception as e:
-    logging.error(f"Failed to retrieve devices: {e}")
+devices = nb.dcim.devices.all()
+logging.info(f"Retrieved {len(devices)} devices")
 ```
 
-**৩. Rate Limiting সতর্কতা:**
-
-একবারে হাজার হাজার রিকোয়েস্ট পাঠাবেন না। Nautobot সার্ভার স্লো হয়ে যাবে।
+**৩. Rate Limiting - একবারে হাজার হাজার রিকোয়েস্ট পাঠাবেন না:**
 
 ```python
 import time
 
-for device in large_list_of_devices:
-    # কাজ করুন
+for device in large_list:
     process_device(device)
-    
-    # একটু wait করুন
     time.sleep(0.1)  # ১০০ms delay
 ```
 
-এখন আপনার হাতে Nautobot-কে অটোমেট করার টুল আছে। আর ম্যানুয়াল কাজ করতে হবে না। একবার স্ক্রিপ্ট লিখে ফেললে সেটা বারবার ইউজ করতে পারবেন।
+## চ্যাপ্টার সারাংশ
 
-পরের চ্যাপ্টারে আমরা দেখব কীভাবে ৫০ হাজার থেকে ১ লক্ষ, তারপর ১ মিলিয়ন কাস্টমারে স্কেল করবেন। কী কী প্রস্তুতি দরকার, কী কী চ্যালেঞ্জ আসবে, আর কীভাবে Nautobot সেই জার্নিতে সাহায্য করবে।
+এই চ্যাপ্টারে আমরা শিখলাম:
+
+**PyNautobot Setup:**
+- Python ইনস্টল করা
+- PyNautobot ইনস্টল করা
+- API Token তৈরি করা
+
+**ডেটা রিড করা:**
+- সব ডিভাইস লিস্ট করা
+- ফিল্টার করে নির্দিষ্ট ডিভাইস খুঁজা
+- আইপি ইউটিলাইজেশন রিপোর্ট
+
+**ডেটা যোগ করা:**
+- একটা ডিভাইস তৈরি
+- CSV থেকে বাল্ক ডিভাইস ইমপোর্ট
+- আইপি এসাইন করা
+
+**ডেটা আপডেট:**
+- ডিভাইস স্ট্যাটাস চেঞ্জ করা
+- বাল্ক ট্যাগিং
+
+**অটোমেশন:**
+- ডেইলি রিপোর্ট স্ক্রিপ্ট
+- Task scheduler দিয়ে অটোমেট করা
+
+**Best Practices:**
+- Error handling
+- Token সিকিউরিটি
+- Logging
+- Rate limiting
+
+SkyNets Bangladesh এখন Nautobot কে অটোমেট করতে পারছে। আসিফ আর ম্যানুয়ালি ক্লিক করে সময় নষ্ট করে না। একটা স্ক্রিপ্ট লিখে সে ৫০টা ডিভাইস ৫ মিনিটে যোগ করতে পারে।
+
+পরবর্তী স্টেপ হলো আরো এডভান্সড অটোমেশন - Ansible integration, Golden Config management, এবং ১ লক্ষ কাস্টমারের দিকে যাত্রা।
+
+---
+
